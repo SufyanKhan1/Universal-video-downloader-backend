@@ -1,33 +1,37 @@
 const express = require("express");
 const ytdl = require("ytdl-core");
 const cors = require("cors");
-const path = require("path");
-const app = express();
-const port = 3000;
 const { exec } = require("child_process");
 
-app.use(express.json());
-// app.use(cors());
+const app = express();
 
+// 1. Use Render's dynamic port, fallback to 3000 for local development
+const port = process.env.PORT || 3000;
+
+app.use(express.json());
+
+// 2. CORS configuration: Allows local development and your future deployed frontend
 const allowedOrigins = [
-  "http://localhost:5173", // default Vite port
-  "http://localhost:3000", // default Create-React-App port
-  "https://your-react-app.vercel.app" // CHANGE THIS later to your live Vercel URL
+  "http://localhost:5173", // Default Vite port
+  "http://localhost:3000", // Default Create-React-App port
+  "https://your-react-app.vercel.app" // ⚠️ CHANGE THIS to your live Vercel URL once deployed
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, Postman, or curl)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
-    return callback(null, true);
   }
 }));
 
-
+// --- ROUTE 1: ytdl-core implementation ---
 app.post("/downloadss", async (req, res) => {
   try {
     const { url } = req.body;
@@ -89,34 +93,45 @@ app.post("/downloadss", async (req, res) => {
   }
 });
 
-const ytdlpPath = path.join(__dirname, "yt-dlp.exe");
-
+// --- ROUTE 2: yt-dlp Linux-compatible implementation ---
 app.post("/download", (req, res) => {
   const { url } = req.body;
 
-  exec(`"${ytdlpPath}" -j "${url}"`, (error, stdout, stderr) => {
+  if (!url) {
+    return res.status(400).json({ error: "URL is required" });
+  }
+
+  // Changed from local yt-dlp.exe to global 'yt-dlp' execution for Render's Linux environment
+  exec(`yt-dlp -j "${url}"`, (error, stdout, stderr) => {
     if (error) {
-      console.log("ERROR:", error);
-      console.log("STDERR:", stderr);
+      console.error("ERROR:", error);
+      console.error("STDERR:", stderr);
       return res.status(500).json({ error: "Download failed" });
     }
 
-    const data = JSON.parse(stdout);
+    try {
+      const data = JSON.parse(stdout);
 
-    const formats = data.formats
-      .filter((v) => v.ext === "mp4")
-      .map((v) => ({
-        quality: v.format_note || v.height + "p",
-        url: v.url,
-      }));
+      const formats = data.formats
+        .filter((v) => v.ext === "mp4")
+        .map((v) => ({
+          quality: v.format_note || v.height + "p",
+          url: v.url,
+        }));
 
-    res.json({
-      title: data.title,
-      thumbnail: data.thumbnail,
-      formats: formats,
-    });
+      res.json({
+        title: data.title,
+        thumbnail: data.thumbnail,
+        formats: formats,
+      });
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError);
+      res.status(500).json({ error: "Failed to parse video data" });
+    }
   });
 });
+
+// Start the server
 app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+  console.log(`Server is running on port ${port}`);
 });
