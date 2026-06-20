@@ -14,7 +14,7 @@ app.use(express.json());
 const allowedOrigins = [
   "http://localhost:5173", // Match this to your exact Vite port
   "http://127.0.0.1:5173", // Add this too, just in case your browser uses the IP address
-  "http://localhost:3000", // Match this if using Create React App
+  "http://localhost:3001", // Match this if using Create React App
   "http://127.0.0.1:3000", // Add this backup as well
 ];
 
