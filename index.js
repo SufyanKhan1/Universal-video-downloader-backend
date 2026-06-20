@@ -7,7 +7,26 @@ const port = 3000;
 const { exec } = require("child_process");
 
 app.use(express.json());
-app.use(cors());
+// app.use(cors());
+
+const allowedOrigins = [
+  "http://localhost:5173", // default Vite port
+  "http://localhost:3000", // default Create-React-App port
+  "https://your-react-app.vercel.app" // CHANGE THIS later to your live Vercel URL
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  }
+}));
+
 
 app.post("/downloadss", async (req, res) => {
   try {
