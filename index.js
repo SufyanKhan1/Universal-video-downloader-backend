@@ -12,24 +12,28 @@ app.use(express.json());
 
 // 2. CORS configuration: Allows local development and your future deployed frontend
 const allowedOrigins = [
-  "http://localhost:5173", // Default Vite port
-  "http://localhost:3000", // Default Create-React-App port
-  "https://your-react-app.vercel.app" // ⚠️ CHANGE THIS to your live Vercel URL once deployed
+  "http://localhost:5173", // Match this to your exact Vite port
+  "http://127.0.0.1:5173", // Add this too, just in case your browser uses the IP address
+  "http://localhost:3000", // Match this if using Create React App
+  "http://127.0.0.1:3000", // Add this backup as well
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, Postman, or curl)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      return callback(null, true);
-    } else {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-  }
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, Postman, or curl)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      } else {
+        const msg =
+          "The CORS policy for this site does not allow access from the specified Origin.";
+        return callback(new Error(msg), false);
+      }
+    },
+  }),
+);
 
 // --- ROUTE 1: ytdl-core implementation ---
 app.post("/downloadss", async (req, res) => {
